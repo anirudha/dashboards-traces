@@ -18,6 +18,7 @@ import { getRootContainerSpan } from '@/services/traces/intentTransform';
 import { formatDuration } from '@/services/traces/utils';
 import { getCategoryColors } from '@/services/traces';
 import { cn } from '@/lib/utils';
+import { ATTR_GEN_AI_TOOL_NAME } from '@opentelemetry/semantic-conventions/incubating';
 
 interface TraceIntentViewProps {
   spanTree: Span[];
@@ -41,8 +42,8 @@ interface ToolInfo {
  * Extract tool name from a span
  */
 function extractToolName(span: CategorizedSpan): string | null {
-  // Try gen_ai.tool.name attribute first
-  const toolName = span.attributes?.['gen_ai.tool.name'];
+  // Try gen_ai.tool.name attribute first (OTel semantic convention)
+  const toolName = span.attributes?.[ATTR_GEN_AI_TOOL_NAME];
   if (toolName) return toolName;
 
   // Parse from displayName or name

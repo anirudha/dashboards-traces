@@ -19,6 +19,11 @@ import {
   FlowTransformResult,
   FlowTransformOptions,
 } from '@/types';
+import {
+  ATTR_GEN_AI_OPERATION_NAME,
+  GEN_AI_OPERATION_NAME_VALUE_INVOKE_AGENT,
+  GEN_AI_OPERATION_NAME_VALUE_CREATE_AGENT,
+} from '@opentelemetry/semantic-conventions/incubating';
 
 /**
  * Edge types for visual styling
@@ -45,8 +50,9 @@ const DEFAULT_OPTIONS: Required<FlowTransformOptions> = {
  */
 function isContainerSpan(span: CategorizedSpan): boolean {
   // 1. OTEL GenAI convention: invoke_agent/create_agent are container operations
-  const operationName = span.attributes?.['gen_ai.operation.name'];
-  if (operationName === 'invoke_agent' || operationName === 'create_agent') {
+  const operationName = span.attributes?.[ATTR_GEN_AI_OPERATION_NAME];
+  if (operationName === GEN_AI_OPERATION_NAME_VALUE_INVOKE_AGENT ||
+      operationName === GEN_AI_OPERATION_NAME_VALUE_CREATE_AGENT) {
     return true;
   }
 

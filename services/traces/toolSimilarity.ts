@@ -6,6 +6,11 @@
  */
 
 import { CategorizedSpan, ToolSimilarityConfig, ToolGroup } from '@/types';
+import { ATTR_GEN_AI_TOOL_NAME } from '@opentelemetry/semantic-conventions/incubating';
+
+// Custom tool attribute keys (not yet in OTel semantic conventions)
+const ATTR_TOOL_ARGS = 'gen_ai.tool.args';
+const ATTR_TOOL_INPUT = 'gen_ai.tool.input';
 
 /**
  * Extract all unique argument keys from tool spans.
@@ -19,7 +24,7 @@ export function extractCommonArgKeys(spans: CategorizedSpan[]): string[] {
       // Only process TOOL category spans
       if (span.category === 'TOOL') {
         // Check for tool arguments in attributes
-        const toolArgs = span.attributes?.['gen_ai.tool.args'];
+        const toolArgs = span.attributes?.[ATTR_TOOL_ARGS];
         if (toolArgs) {
           try {
             const argsObj = typeof toolArgs === 'string' ? JSON.parse(toolArgs) : toolArgs;
@@ -32,7 +37,7 @@ export function extractCommonArgKeys(spans: CategorizedSpan[]): string[] {
         }
 
         // Also check for input attributes that might contain args
-        const input = span.attributes?.['gen_ai.tool.input'];
+        const input = span.attributes?.[ATTR_TOOL_INPUT];
         if (input) {
           try {
             const inputObj = typeof input === 'string' ? JSON.parse(input) : input;
@@ -60,7 +65,7 @@ export function extractCommonArgKeys(spans: CategorizedSpan[]): string[] {
  * Get tool arguments from a span's attributes
  */
 function getToolArgs(span: CategorizedSpan): Record<string, unknown> {
-  const toolArgs = span.attributes?.['gen_ai.tool.args'];
+  const toolArgs = span.attributes?.[ATTR_TOOL_ARGS];
   if (toolArgs) {
     try {
       return typeof toolArgs === 'string' ? JSON.parse(toolArgs) : toolArgs;
@@ -69,7 +74,7 @@ function getToolArgs(span: CategorizedSpan): Record<string, unknown> {
     }
   }
 
-  const input = span.attributes?.['gen_ai.tool.input'];
+  const input = span.attributes?.[ATTR_TOOL_INPUT];
   if (input) {
     try {
       return typeof input === 'string' ? JSON.parse(input) : input;
@@ -86,7 +91,7 @@ function getToolArgs(span: CategorizedSpan): Record<string, unknown> {
  */
 function getToolName(span: CategorizedSpan): string {
   return (
-    span.attributes?.['gen_ai.tool.name'] as string ||
+    span.attributes?.[ATTR_GEN_AI_TOOL_NAME] as string ||
     span.name ||
     'unknown_tool'
   );
