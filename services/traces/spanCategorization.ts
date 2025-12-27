@@ -6,21 +6,44 @@
  */
 
 import { Span, SpanCategory, CategorizedSpan, OTelComplianceResult } from '@/types';
+import {
+  // Attribute names
+  ATTR_GEN_AI_OPERATION_NAME,
+  ATTR_GEN_AI_AGENT_NAME,
+  ATTR_GEN_AI_PROVIDER_NAME,
+  ATTR_GEN_AI_REQUEST_MODEL,
+  ATTR_GEN_AI_TOOL_NAME,
+  ATTR_GEN_AI_SYSTEM,
+  // Operation name values
+  GEN_AI_OPERATION_NAME_VALUE_CREATE_AGENT,
+  GEN_AI_OPERATION_NAME_VALUE_INVOKE_AGENT,
+  GEN_AI_OPERATION_NAME_VALUE_CHAT,
+  GEN_AI_OPERATION_NAME_VALUE_TEXT_COMPLETION,
+  GEN_AI_OPERATION_NAME_VALUE_GENERATE_CONTENT,
+  GEN_AI_OPERATION_NAME_VALUE_EXECUTE_TOOL,
+} from '@opentelemetry/semantic-conventions/incubating';
 
 /**
  * OTel operation names that map to AGENT category
  */
-const AGENT_OPERATIONS = ['create_agent', 'invoke_agent'];
+const AGENT_OPERATIONS = [
+  GEN_AI_OPERATION_NAME_VALUE_CREATE_AGENT,
+  GEN_AI_OPERATION_NAME_VALUE_INVOKE_AGENT,
+];
 
 /**
  * OTel operation names that map to LLM category
  */
-const LLM_OPERATIONS = ['chat', 'text_completion', 'generate_content'];
+const LLM_OPERATIONS = [
+  GEN_AI_OPERATION_NAME_VALUE_CHAT,
+  GEN_AI_OPERATION_NAME_VALUE_TEXT_COMPLETION,
+  GEN_AI_OPERATION_NAME_VALUE_GENERATE_CONTENT,
+];
 
 /**
  * OTel operation names that map to TOOL category
  */
-const TOOL_OPERATIONS = ['execute_tool'];
+const TOOL_OPERATIONS = [GEN_AI_OPERATION_NAME_VALUE_EXECUTE_TOOL];
 
 /**
  * Category metadata (color, icon, label)
@@ -83,7 +106,7 @@ export function getSpanCategory(span: Span): SpanCategory {
   }
 
   // 1. Standards-first: OTel GenAI semantic conventions
-  const operationName = span.attributes?.['gen_ai.operation.name'];
+  const operationName = span.attributes?.[ATTR_GEN_AI_OPERATION_NAME];
 
   if (operationName) {
     if (AGENT_OPERATIONS.includes(operationName)) {
@@ -124,17 +147,17 @@ export function getSpanCategory(span: Span): SpanCategory {
  */
 export function buildDisplayName(span: Span, category: SpanCategory): string {
   const attrs = span.attributes || {};
-  const operationName = attrs['gen_ai.operation.name'] || '';
+  const operationName = attrs[ATTR_GEN_AI_OPERATION_NAME] || '';
 
   switch (category) {
     case 'AGENT': {
-      const agentName = attrs['gen_ai.agent.name'] || span.name;
+      const agentName = attrs[ATTR_GEN_AI_AGENT_NAME] || span.name;
       return operationName ? `${operationName} ${agentName}` : agentName;
     }
 
     case 'LLM': {
-      const provider = attrs['gen_ai.provider.name'] || '';
-      const model = attrs['gen_ai.request.model'] || '';
+      const provider = attrs[ATTR_GEN_AI_PROVIDER_NAME] || '';
+      const model = attrs[ATTR_GEN_AI_REQUEST_MODEL] || '';
       // Get short model name (last part after dots)
       const shortModel = model.split('.').pop() || model;
       const parts = [operationName, provider, shortModel].filter(Boolean);
@@ -142,7 +165,7 @@ export function buildDisplayName(span: Span, category: SpanCategory): string {
     }
 
     case 'TOOL': {
-      const toolName = attrs['gen_ai.tool.name'] || span.name;
+      const toolName = attrs[ATTR_GEN_AI_TOOL_NAME] || span.name;
       return operationName ? `${operationName} ${toolName}` : toolName;
     }
 
@@ -270,9 +293,9 @@ export function countByCategory(spans: CategorizedSpan[]): Record<SpanCategory, 
  * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/
  */
 const EXPECTED_ATTRIBUTES: Record<SpanCategory, string[]> = {
-  LLM: ['gen_ai.operation.name', 'gen_ai.request.model', 'gen_ai.system'],
-  TOOL: ['gen_ai.operation.name', 'gen_ai.tool.name'],
-  AGENT: ['gen_ai.operation.name', 'gen_ai.agent.name'],
+  LLM: [ATTR_GEN_AI_OPERATION_NAME, ATTR_GEN_AI_REQUEST_MODEL, ATTR_GEN_AI_SYSTEM],
+  TOOL: [ATTR_GEN_AI_OPERATION_NAME, ATTR_GEN_AI_TOOL_NAME],
+  AGENT: [ATTR_GEN_AI_OPERATION_NAME, ATTR_GEN_AI_AGENT_NAME],
   ERROR: [],  // Errors just need status
   OTHER: [],  // No expectations for OTHER
 };

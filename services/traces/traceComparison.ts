@@ -14,6 +14,12 @@ import {
 } from '@/types';
 import { categorizeSpanTree } from './spanCategorization';
 import { calculateToolSimilarity } from './toolSimilarity';
+import {
+  ATTR_GEN_AI_OPERATION_NAME,
+  ATTR_GEN_AI_AGENT_NAME,
+  ATTR_GEN_AI_REQUEST_MODEL,
+  ATTR_GEN_AI_TOOL_NAME,
+} from '@opentelemetry/semantic-conventions/incubating';
 
 const MATCH_THRESHOLD = 0.6;
 const MODIFIED_THRESHOLD = 0.4;
@@ -35,8 +41,8 @@ export function calculateSpanSimilarity(
   }
 
   // Name/operation match: 0.3 weight
-  const leftOp = left.attributes?.['gen_ai.operation.name'] || left.name;
-  const rightOp = right.attributes?.['gen_ai.operation.name'] || right.name;
+  const leftOp = left.attributes?.[ATTR_GEN_AI_OPERATION_NAME] || left.name;
+  const rightOp = right.attributes?.[ATTR_GEN_AI_OPERATION_NAME] || right.name;
   if (leftOp === rightOp) {
     score += 0.3;
   }
@@ -47,12 +53,12 @@ export function calculateSpanSimilarity(
     score += toolSim * 0.25;
   } else {
     // For non-tool spans, compare relevant attributes
-    const leftAgent = left.attributes?.['gen_ai.agent.name'];
-    const rightAgent = right.attributes?.['gen_ai.agent.name'];
-    const leftModel = left.attributes?.['gen_ai.request.model'];
-    const rightModel = right.attributes?.['gen_ai.request.model'];
-    const leftTool = left.attributes?.['gen_ai.tool.name'];
-    const rightTool = right.attributes?.['gen_ai.tool.name'];
+    const leftAgent = left.attributes?.[ATTR_GEN_AI_AGENT_NAME];
+    const rightAgent = right.attributes?.[ATTR_GEN_AI_AGENT_NAME];
+    const leftModel = left.attributes?.[ATTR_GEN_AI_REQUEST_MODEL];
+    const rightModel = right.attributes?.[ATTR_GEN_AI_REQUEST_MODEL];
+    const leftTool = left.attributes?.[ATTR_GEN_AI_TOOL_NAME];
+    const rightTool = right.attributes?.[ATTR_GEN_AI_TOOL_NAME];
 
     if (
       (leftAgent && rightAgent && leftAgent === rightAgent) ||

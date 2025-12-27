@@ -10,6 +10,12 @@
 import { categorizeSpanTree } from '../spanCategorization';
 import { spansToIntentNodes, getRootContainerSpan } from '../intentTransform';
 import { Span } from '@/types';
+import {
+  ATTR_GEN_AI_SYSTEM,
+  ATTR_GEN_AI_OPERATION_NAME,
+  ATTR_GEN_AI_TOOL_NAME,
+  GEN_AI_OPERATION_NAME_VALUE_EXECUTE_TOOL,
+} from '@opentelemetry/semantic-conventions/incubating';
 
 /**
  * Create a realistic span tree structure similar to what we receive from OpenSearch
@@ -34,7 +40,7 @@ function createRealSpanTree(): Span[] {
           endTime: '2024-01-01T00:00:10Z',
           duration: 9000,
           status: 'OK',
-          attributes: { 'gen_ai.system': 'aws_bedrock' },
+          attributes: { [ATTR_GEN_AI_SYSTEM]: 'aws_bedrock' },
           children: [],
         },
         {
@@ -45,7 +51,7 @@ function createRealSpanTree(): Span[] {
           endTime: '2024-01-01T00:00:20Z',
           duration: 9000,
           status: 'OK',
-          attributes: { 'gen_ai.operation.name': 'execute_tool' },
+          attributes: { [ATTR_GEN_AI_OPERATION_NAME]: GEN_AI_OPERATION_NAME_VALUE_EXECUTE_TOOL },
           children: [],
         },
         {
@@ -56,7 +62,7 @@ function createRealSpanTree(): Span[] {
           endTime: '2024-01-01T00:00:35Z',
           duration: 14000,
           status: 'OK',
-          attributes: { 'gen_ai.system': 'aws_bedrock' },
+          attributes: { [ATTR_GEN_AI_SYSTEM]: 'aws_bedrock' },
           children: [],
         },
       ],
@@ -87,7 +93,7 @@ function createMultiToolSpanTree(): Span[] {
           endTime: '2024-01-01T00:00:10Z',
           duration: 9000,
           status: 'OK',
-          attributes: { 'gen_ai.system': 'aws_bedrock' },
+          attributes: { [ATTR_GEN_AI_SYSTEM]: 'aws_bedrock' },
           children: [],
         },
         {
@@ -98,7 +104,7 @@ function createMultiToolSpanTree(): Span[] {
           endTime: '2024-01-01T00:00:20Z',
           duration: 9000,
           status: 'OK',
-          attributes: { 'gen_ai.operation.name': 'execute_tool', 'gen_ai.tool.name': 'search_logs' },
+          attributes: { [ATTR_GEN_AI_OPERATION_NAME]: GEN_AI_OPERATION_NAME_VALUE_EXECUTE_TOOL, [ATTR_GEN_AI_TOOL_NAME]: 'search_logs' },
           children: [],
         },
         {
@@ -109,7 +115,7 @@ function createMultiToolSpanTree(): Span[] {
           endTime: '2024-01-01T00:00:30Z',
           duration: 9000,
           status: 'OK',
-          attributes: { 'gen_ai.operation.name': 'execute_tool', 'gen_ai.tool.name': 'get_metrics' },
+          attributes: { [ATTR_GEN_AI_OPERATION_NAME]: GEN_AI_OPERATION_NAME_VALUE_EXECUTE_TOOL, [ATTR_GEN_AI_TOOL_NAME]: 'get_metrics' },
           children: [],
         },
         {
@@ -120,7 +126,7 @@ function createMultiToolSpanTree(): Span[] {
           endTime: '2024-01-01T00:00:45Z',
           duration: 14000,
           status: 'OK',
-          attributes: { 'gen_ai.operation.name': 'execute_tool', 'gen_ai.tool.name': 'query_database' },
+          attributes: { [ATTR_GEN_AI_OPERATION_NAME]: GEN_AI_OPERATION_NAME_VALUE_EXECUTE_TOOL, [ATTR_GEN_AI_TOOL_NAME]: 'query_database' },
           children: [],
         },
         {
@@ -131,7 +137,7 @@ function createMultiToolSpanTree(): Span[] {
           endTime: '2024-01-01T00:01:00Z',
           duration: 14000,
           status: 'OK',
-          attributes: { 'gen_ai.system': 'aws_bedrock' },
+          attributes: { [ATTR_GEN_AI_SYSTEM]: 'aws_bedrock' },
           children: [],
         },
       ],
@@ -273,7 +279,7 @@ describe('Intent View Integration', () => {
           endTime: '2024-01-01T00:00:10Z',
           duration: 10000,
           status: 'OK',
-          attributes: { 'gen_ai.system': 'aws_bedrock' },
+          attributes: { [ATTR_GEN_AI_SYSTEM]: 'aws_bedrock' },
           children: [],
         },
       ];

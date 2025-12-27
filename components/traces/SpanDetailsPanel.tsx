@@ -14,6 +14,7 @@ import { Span } from '@/types';
 import { formatDuration, getKeyAttributes } from '@/services/traces/utils';
 import ContextWindowBar from './ContextWindowBar';
 import FormattedMessages from './FormattedMessages';
+import { ATTR_GEN_AI_USAGE_INPUT_TOKENS } from '@opentelemetry/semantic-conventions/incubating';
 
 interface SpanDetailsPanelProps {
   span: Span;
@@ -120,7 +121,7 @@ const SpanDetailsPanel: React.FC<SpanDetailsPanelProps> = ({ span, onClose }) =>
                   systemPrompt={llmRequestEvent.attributes?.['llm.system_prompt'] || ''}
                   messages={llmRequestEvent.attributes?.['llm.prompt'] || ''}
                   toolCount={llmRequestEvent.attributes?.['bedrock.tool_count'] || 0}
-                  actualInputTokens={span.attributes?.['gen_ai.usage.input_tokens']}
+                  actualInputTokens={span.attributes?.[ATTR_GEN_AI_USAGE_INPUT_TOKENS]}
                 />
               )}
             </div>
