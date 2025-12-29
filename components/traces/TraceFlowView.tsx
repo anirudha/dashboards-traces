@@ -8,6 +8,7 @@
  * - Branch edges: parent → child for detail/implementation spans
  * - Parallel detection: among siblings with overlapping times
  *
+ * Also displays summary stats above the flow and time distribution below.
  * Uses dagre for automatic layout positioning with TB (top-to-bottom) direction.
  */
 
@@ -26,8 +27,20 @@ import '@xyflow/react/dist/style.css';
 import { Span, TimeRange, CategorizedSpan, SpanNodeData } from '@/types';
 import { categorizeSpanTree } from '@/services/traces/spanCategorization';
 import { spansToFlow } from '@/services/traces/flowTransform';
+import { getRootContainerSpan } from '@/services/traces/intentTransform';
+import {
+  flattenSpans,
+  calculateCategoryStats,
+  extractToolStats,
+} from '@/services/traces/traceStats';
 import { nodeTypes } from './flow/nodeTypes';
 import SpanDetailsPanel from './SpanDetailsPanel';
+import {
+  TraceSummaryHeader,
+  SummaryStatsGrid,
+  ToolsUsedSection,
+  TimeDistributionBar,
+} from './TraceSummary';
 
 interface TraceFlowViewProps {
   spanTree: Span[];
@@ -70,6 +83,30 @@ export const TraceFlowView: React.FC<TraceFlowViewProps> = ({
   const categorizedTree = useMemo(
     () => categorizeSpanTree(spanTree),
     [spanTree]
+  );
+
+  // Get root container for header
+  const rootContainer = useMemo(
+    () => getRootContainerSpan(categorizedTree),
+    [categorizedTree]
+  );
+
+  // Flatten all spans for analysis
+  const allSpans = useMemo(
+    () => flattenSpans(categorizedTree),
+    [categorizedTree]
+  );
+
+  // Calculate statistics
+  const categoryStats = useMemo(
+    () => calculateCategoryStats(allSpans, timeRange.duration),
+    [allSpans, timeRange.duration]
+  );
+
+  // Extract tool information
+  const toolStats = useMemo(
+    () => extractToolStats(allSpans),
+    [allSpans]
   );
 
   // Transform to React Flow nodes/edges - always use TB (top to bottom) direction
@@ -133,55 +170,75 @@ export const TraceFlowView: React.FC<TraceFlowViewProps> = ({
   }
 
   return (
-    <div className="flex h-full">
-      {/* Flow canvas */}
-      <div className="flex-1 relative">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onNodeClick={onNodeClick}
-          onPaneClick={onPaneClick}
-          nodeTypes={nodeTypes}
-          fitView
-          fitViewOptions={{
-            padding: 0.1,
-            minZoom: 0.4,
-            maxZoom: 1,
-          }}
-          minZoom={0.2}
-          maxZoom={2}
-          defaultEdgeOptions={{
-            type: 'smoothstep',
-          }}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background
-            variant={BackgroundVariant.Dots}
-            gap={16}
-            size={1}
-            color="#334155"
-          />
-          <MiniMap
-            nodeColor={minimapNodeColor}
-            maskColor="rgba(15, 23, 42, 0.8)"
-            className="!bg-slate-900/50 !border-slate-700"
-            pannable
-            zoomable
-          />
-        </ReactFlow>
+    <div className="h-full flex flex-col">
+      {/* Summary section (above flow) */}
+      <div className="shrink-0 border-b">
+        <TraceSummaryHeader
+          rootContainer={rootContainer}
+          spanCount={allSpans.length}
+          totalDuration={timeRange.duration}
+        />
+        <div className="p-4 space-y-4">
+          <SummaryStatsGrid categoryStats={categoryStats} toolStats={toolStats} />
+          <ToolsUsedSection toolStats={toolStats} />
+        </div>
       </div>
 
-      {/* Details panel */}
-      {selectedCategorizedSpan && (
-        <div className="w-96 border-l overflow-auto">
-          <SpanDetailsPanel
-            span={selectedCategorizedSpan}
-            onClose={() => onSelectSpan(null)}
-          />
+      {/* Flow canvas (middle) */}
+      <div className="flex-1 flex min-h-0">
+        <div className="flex-1 relative">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onNodeClick={onNodeClick}
+            onPaneClick={onPaneClick}
+            nodeTypes={nodeTypes}
+            fitView
+            fitViewOptions={{
+              padding: 0.1,
+              minZoom: 0.4,
+              maxZoom: 1,
+            }}
+            minZoom={0.2}
+            maxZoom={2}
+            defaultEdgeOptions={{
+              type: 'smoothstep',
+            }}
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background
+              variant={BackgroundVariant.Dots}
+              gap={16}
+              size={1}
+              color="#334155"
+            />
+            <MiniMap
+              nodeColor={minimapNodeColor}
+              maskColor="rgba(15, 23, 42, 0.8)"
+              className="!bg-slate-900/50 !border-slate-700"
+              pannable
+              zoomable
+            />
+          </ReactFlow>
         </div>
-      )}
+
+        {/* Details panel */}
+        {selectedCategorizedSpan && (
+          <div className="w-96 border-l overflow-auto">
+            <SpanDetailsPanel
+              span={selectedCategorizedSpan}
+              onClose={() => onSelectSpan(null)}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Time Distribution (below flow) */}
+      <div className="shrink-0 p-4 border-t">
+        <TimeDistributionBar stats={categoryStats} totalDuration={timeRange.duration} />
+      </div>
     </div>
   );
 };

@@ -245,3 +245,13 @@ export {
   getCategoryColors,
   type CategoryColorConfig,
 } from './categoryStyles';
+
+// Re-export trace stats utilities
+export {
+  flattenSpans,
+  calculateCategoryStats,
+  extractToolName,
+  extractToolStats,
+  type CategoryStats,
+  type ToolInfo,
+} from './traceStats';

@@ -1,7 +1,7 @@
 /**
  * TraceVisualization - Shared component for trace visualization
  *
- * Provides unified view switching between Timeline, Flow, and Intent views.
+ * Provides unified view switching between Timeline and Flow views.
  * Used by both TracesPage and RunDetailsContent.
  */
 
@@ -10,7 +10,6 @@ import { Span, TimeRange } from '@/types';
 import ViewToggle, { ViewMode } from './ViewToggle';
 import TraceTimelineChart from './TraceTimelineChart';
 import TraceFlowView from './TraceFlowView';
-import TraceIntentView from './TraceIntentView';
 import SpanDetailsPanel from './SpanDetailsPanel';
 
 interface TraceVisualizationProps {
@@ -19,7 +18,7 @@ interface TraceVisualizationProps {
   initialViewMode?: ViewMode;
   onViewModeChange?: (mode: ViewMode) => void;
   showViewToggle?: boolean;
-  /** Height for flow/intent container (default: 100%) */
+  /** Height for flow container (default: 100%) */
   height?: string;
   /** Show span details panel for timeline mode */
   showSpanDetailsPanel?: boolean;
@@ -117,12 +116,7 @@ const TraceVisualization: React.FC<TraceVisualizationProps> = ({
 
       {/* View Content */}
       <div className="flex-1 overflow-hidden">
-        {viewMode === 'intent' ? (
-          <TraceIntentView
-            spanTree={spanTree}
-            timeRange={timeRange}
-          />
-        ) : viewMode === 'flow' ? (
+        {viewMode === 'flow' ? (
           <div style={{ height }} className="w-full">
             <TraceFlowView
               spanTree={spanTree}
