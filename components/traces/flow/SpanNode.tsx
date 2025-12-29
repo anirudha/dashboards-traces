@@ -5,12 +5,14 @@
  * Used as the base node type for all span categories.
  */
 
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Bot, Zap, Wrench, AlertCircle, Circle } from 'lucide-react';
+import { Bot, Zap, Wrench, AlertCircle, Circle, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '@/services/traces/utils';
+import { checkOTelCompliance } from '@/services/traces/spanCategorization';
 import { SpanNodeData, SpanCategory, CategorizedSpan } from '@/types';
 
 /** Props for SpanNode component */
@@ -84,6 +86,9 @@ function SpanNodeComponent({ data, selected }: SpanNodeProps) {
     ? Math.min((duration / totalDuration) * 100, 100)
     : 0;
 
+  // Check OTel compliance
+  const otelCompliance = useMemo(() => checkOTelCompliance(span), [span]);
+
   return (
     <div
       className={cn(
@@ -119,6 +124,26 @@ function SpanNodeComponent({ data, selected }: SpanNodeProps) {
           <Badge variant="destructive" className="text-[9px] h-4 px-1">
             ERR
           </Badge>
+        )}
+        {/* OTel compliance warning */}
+        {!otelCompliance.isCompliant && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="ml-auto">
+                  <AlertTriangle size={12} className="text-amber-400" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                <p className="text-xs font-medium text-amber-400 mb-1">Missing OTel attributes:</p>
+                <ul className="text-xs text-muted-foreground">
+                  {otelCompliance.missingAttributes.map(attr => (
+                    <li key={attr} className="font-mono">{attr}</li>
+                  ))}
+                </ul>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
 

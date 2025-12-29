@@ -243,7 +243,7 @@ export const TracesPage: React.FC = () => {
         <CardHeader className="py-2 px-4 border-b">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Activity size={14} />
-            {viewMode === 'flow' ? 'Trace Flow' : viewMode === 'intent' ? 'Trace Intent' : 'Trace Timeline'}
+            {viewMode === 'flow' ? 'Trace Flow' : 'Trace Timeline'}
             {isTailing && (
               <span className="flex items-center gap-1 text-xs text-green-400 font-normal">
                 <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
