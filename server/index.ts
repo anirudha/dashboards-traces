@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /**
  * Backend Server Entry Point
  * Handles AWS Bedrock API calls and serves as the main API server

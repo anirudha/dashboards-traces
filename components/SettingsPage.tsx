@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, Trash2, Database, CheckCircle2, XCircle, Upload, Download, Loader2, Server, Plus, Edit2, X, Save, ExternalLink } from 'lucide-react';
 import { isDebugEnabled, setDebugEnabled } from '@/lib/debug';

@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /**
  * Configure Mode Command Handler
  * Interactive wizard to configure connection to real infrastructure

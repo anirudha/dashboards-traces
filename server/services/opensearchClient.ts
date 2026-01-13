@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /**
  * OpenSearch Client Service
  * Provides a singleton client for OpenSearch storage operations using the official SDK.

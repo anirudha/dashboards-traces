@@ -346,3 +346,53 @@ This repository follows OpenSearch project conventions:
 - [FEATURES.md](FEATURES.md), [ONBOARDING.md](ONBOARDING.md), [RELEASING.md](RELEASING.md), [RESPONSIBILITIES.md](RESPONSIBILITIES.md)
 - [PULL_REQUEST_TEMPLATE.md](PULL_REQUEST_TEMPLATE.md)
 
+**License Headers (REQUIRED for all source files):**
+All source files MUST include an SPDX license header. Add the appropriate header at the top of new files:
+
+```typescript
+// For .ts, .tsx, .js, .jsx, .cjs, .mjs, .css files:
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+```
+
+```bash
+# For .sh files (after shebang if present):
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
+```
+
+```html
+<!-- For .html files (after DOCTYPE if present): -->
+<!--
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+-->
+```
+
+**DCO Signoff (REQUIRED for all commits):**
+All commits MUST include a DCO (Developer Certificate of Origin) signoff. This is enforced by CI.
+
+```bash
+# Use -s flag when committing
+git commit -s -m "feat: your commit message"
+
+# Or use -S for GPG signing + signoff
+git commit -s -S -m "feat: your commit message"
+```
+
+The signoff line will be added automatically:
+```
+Signed-off-by: Your Name <your.email@example.com>
+```
+
+To fix commits missing signoff, use:
+```bash
+# Amend last commit
+git commit --amend -s --no-edit
+
+# Rebase and signoff all commits (interactive)
+git rebase -i HEAD~N  # then use 'edit' and run: git commit --amend -s --no-edit && git rebase --continue
+```
+

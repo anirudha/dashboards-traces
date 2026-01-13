@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { AppConfig } from '@/types';
 import { ENV_CONFIG, buildMLCommonsHeaders } from './config';
 

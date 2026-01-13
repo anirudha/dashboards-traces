@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import type { Node, Edge } from '@xyflow/react';
 
 // Shared type for difficulty levels

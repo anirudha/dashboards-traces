@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 export { TracesPage, default } from './TracesPage';
 export { default as TraceTimelineChart } from './TraceTimelineChart';
 export { default as TraceFlowView } from './TraceFlowView';

@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Calendar, CheckCircle2, XCircle, BarChart3, PanelLeftClose, PanelLeft, Clock, Loader2, StopCircle } from 'lucide-react';
