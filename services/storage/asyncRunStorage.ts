@@ -46,6 +46,18 @@ export interface GetReportsOptions {
 }
 
 /**
+ * Optional fields for trace-mode runs (when useTraces: true)
+ * These fields are dynamically added and not part of the base StorageRun schema
+ */
+interface TraceModeFields {
+  metricsStatus?: string;
+  traceFetchAttempts?: number;
+  lastTraceFetchAt?: string;
+  traceError?: string;
+  spans?: unknown[];
+}
+
+/**
  * Convert OpenSearch storage format to app TestCaseRun format
  */
 function toTestCaseRun(stored: StorageRun): TestCaseRun {
@@ -103,10 +115,10 @@ function toTestCaseRun(stored: StorageRun): TestCaseRun {
 /**
  * Convert app TestCaseRun format to OpenSearch storage format
  */
-function toStorageFormat(report: EvaluationReport): Omit<StorageRun, 'id' | 'createdAt' | 'annotations'> & Record<string, unknown> {
-  const base: Omit<StorageRun, 'id' | 'createdAt' | 'annotations'> & Record<string, unknown> = {
-    experimentId: '', // Set by caller if part of experiment
-    experimentRunId: '', // Set by caller if part of experiment
+function toStorageFormat(report: EvaluationReport): Omit<StorageRun, 'id' | 'createdAt' | 'annotations'> & Partial<TraceModeFields> {
+  const base: Omit<StorageRun, 'id' | 'createdAt' | 'annotations'> & Partial<TraceModeFields> = {
+    experimentId: '', // Storage field for benchmarkId (name preserved for data compatibility)
+    experimentRunId: '', // Storage field for benchmarkRunId (name preserved for data compatibility)
     testCaseId: report.testCaseId,
     testCaseVersionId: `${report.testCaseId}-v${report.testCaseVersion || 1}`,
     agentId: report.agentKey || report.agentName,
@@ -262,42 +274,57 @@ class AsyncRunStorage {
     return reports.length;
   }
 
-  // ==================== Experiment-Specific Operations ====================
+  // ==================== Benchmark-Specific Operations ====================
 
   /**
-   * Get runs for an experiment
+   * Get runs for a benchmark
    */
-  async getByExperiment(experimentId: string, size?: number): Promise<EvaluationReport[]> {
-    const stored = await opensearchRuns.getByExperiment(experimentId, size);
+  async getByBenchmark(benchmarkId: string, size?: number): Promise<EvaluationReport[]> {
+    const stored = await opensearchRuns.getByBenchmark(benchmarkId, size);
     return stored.map(toTestCaseRun);
   }
 
   /**
-   * Get runs for a specific experiment run config
+   * Get runs for a specific benchmark run config
    */
-  async getByExperimentRun(
-    experimentId: string,
+  async getByBenchmarkRun(
+    benchmarkId: string,
     runId: string,
     size?: number
   ): Promise<EvaluationReport[]> {
-    const stored = await opensearchRuns.getByExperimentRun(experimentId, runId, size);
+    const stored = await opensearchRuns.getByBenchmarkRun(benchmarkId, runId, size);
     return stored.map(toTestCaseRun);
   }
 
   /**
-   * Get all iterations for a test case in an experiment
+   * Get all iterations for a test case in a benchmark
    */
   async getIterations(
-    experimentId: string,
+    benchmarkId: string,
     testCaseId: string,
-    experimentRunId?: string
+    benchmarkRunId?: string
   ): Promise<{ runs: EvaluationReport[]; total: number; maxIteration: number }> {
-    const result = await opensearchRuns.getIterations(experimentId, testCaseId, experimentRunId);
+    const result = await opensearchRuns.getIterations(benchmarkId, testCaseId, benchmarkRunId);
     return {
       runs: result.runs.map(toTestCaseRun),
       total: result.total,
       maxIteration: result.maxIteration,
     };
+  }
+
+  // Backwards compatibility aliases
+  /** @deprecated Use getByBenchmark instead */
+  async getByExperiment(experimentId: string, size?: number): Promise<EvaluationReport[]> {
+    return this.getByBenchmark(experimentId, size);
+  }
+
+  /** @deprecated Use getByBenchmarkRun instead */
+  async getByExperimentRun(
+    experimentId: string,
+    runId: string,
+    size?: number
+  ): Promise<EvaluationReport[]> {
+    return this.getByBenchmarkRun(experimentId, runId, size);
   }
 
   // ==================== Annotation Operations ====================
