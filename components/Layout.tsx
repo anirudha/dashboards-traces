@@ -3,17 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from "react";
+import React, { useState } from "react";
 import {
   LayoutDashboard,
   Settings,
   ClipboardList,
-  Server,
   FlaskConical,
   Activity,
+  ChevronRight,
+  TestTube,
 } from "lucide-react";
 import OpenSearchLogo from "@/assets/opensearch-logo.svg";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useServerStatus } from "@/hooks/useServerStatus";
 import {
   Sidebar,
@@ -25,9 +26,16 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarProvider,
   SidebarInset,
 } from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface LayoutProps {
@@ -35,20 +43,29 @@ interface LayoutProps {
 }
 
 const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/test-cases", icon: ClipboardList, label: "Test Cases" },
-  { to: "/benchmarks", icon: FlaskConical, label: "Benchmarks" },
-  { to: "/traces", icon: Activity, label: "Live Traces" },
+  { to: "/", icon: LayoutDashboard, label: "Overview" },
+  { to: "/traces", icon: Activity, label: "Agent Traces" },
 ];
 
-const settingsItems = [
-  { to: "/config", icon: Server, label: "Agents & Models" },
-  { to: "/settings", icon: Settings, label: "Settings" },
+const evalsSubItems = [
+  { to: "/test-cases", label: "Test Cases" },
+  { to: "/benchmarks", label: "Benchmarks" },
 ];
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { status, version, loading } = useServerStatus();
+
+  // Determine if evals section should be open based on current path
+  const isEvalsPath = location.pathname.startsWith("/test-cases") ||
+                      location.pathname.startsWith("/benchmarks");
+  const [evalsOpen, setEvalsOpen] = useState(isEvalsPath);
+
+  const handleEvalsClick = () => {
+    setEvalsOpen(true);
+    navigate("/benchmarks");
+  };
 
   return (
     <SidebarProvider className="h-screen overflow-hidden">
@@ -85,6 +102,39 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
+
+                {/* Evals collapsible section */}
+                <Collapsible
+                  open={evalsOpen}
+                  onOpenChange={setEvalsOpen}
+                  className="group/collapsible"
+                >
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      tooltip="Evals"
+                      isActive={isEvalsPath}
+                      onClick={handleEvalsClick}
+                    >
+                      <TestTube />
+                      <span>Evals</span>
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {evalsSubItems.map((item) => (
+                          <SidebarMenuSubItem key={item.to}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={location.pathname === item.to || location.pathname.startsWith(item.to + "/")}
+                            >
+                              <Link to={item.to}>{item.label}</Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -92,20 +142,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {settingsItems.map((item) => (
-                  <SidebarMenuItem key={item.to}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === item.to}
-                      tooltip={item.label}
-                    >
-                      <Link to={item.to}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === "/settings"}
+                    tooltip="Settings"
+                  >
+                    <Link to="/settings">
+                      <Settings />
+                      <span>Settings</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

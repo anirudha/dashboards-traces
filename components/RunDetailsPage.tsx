@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, CheckCircle2, XCircle, BarChart3, PanelLeftClose, PanelLeft, Clock, Loader2, StopCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, CheckCircle2, XCircle, BarChart3, PanelLeftClose, PanelLeft, Clock, Loader2, StopCircle, Ban } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -153,7 +153,10 @@ const Sidebar = ({ context, selectedItem, onSelectItem, onToggleCollapse, isColl
                     {!isPassed && !isFailed && result.status === 'pending' && (
                       <Clock size={18} className="text-yellow-400" />
                     )}
-                    {!isPassed && !isFailed && result.status !== 'running' && result.status !== 'pending' && (
+                    {!isPassed && !isFailed && result.status === 'cancelled' && (
+                      <Ban size={18} className="text-orange-400" />
+                    )}
+                    {!isPassed && !isFailed && result.status !== 'running' && result.status !== 'pending' && result.status !== 'cancelled' && (
                       <div className="w-[18px] h-[18px] rounded-full border-2 border-muted-foreground/30" />
                     )}
                   </div>
@@ -201,8 +204,10 @@ const Sidebar = ({ context, selectedItem, onSelectItem, onToggleCollapse, isColl
 // ==================== Main Component ====================
 
 export const RunDetailsPage: React.FC = () => {
-  // Support both /runs/:runId and /experiments/:experimentId/runs/:runId routes
-  const { runId, experimentId: routeExperimentId } = useParams<{ runId: string; experimentId?: string }>();
+  // Support /runs/:runId, /experiments/:experimentId/runs/:runId, and /benchmarks/:benchmarkId/runs/:runId routes
+  const { runId, experimentId, benchmarkId } = useParams<{ runId: string; experimentId?: string; benchmarkId?: string }>();
+  // Use benchmarkId or experimentId (backwards compat alias)
+  const routeExperimentId = benchmarkId || experimentId;
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -222,6 +227,9 @@ export const RunDetailsPage: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<string>(''); // testCaseId or 'summary'
   const [isCancelling, setIsCancelling] = useState(false);
 
+  // Track base path for navigation (benchmarks vs experiments)
+  const basePath = benchmarkId ? '/benchmarks' : '/experiments';
+
   // Load run data - supports both:
   // 1. Experiment runs: /experiments/:experimentId/runs/:runId (runId is ExperimentRun.id)
   // 2. Standalone runs: /runs/:runId (runId is EvaluationReport.id)
@@ -234,22 +242,22 @@ export const RunDetailsPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Case 1: Experiment run (with experimentId)
+      // Case 1: Benchmark/Experiment run (with benchmarkId or experimentId)
       if (routeExperimentId) {
         const exp = await asyncExperimentStorage.getById(routeExperimentId);
 
         if (!exp) {
-          console.error('Experiment not found:', routeExperimentId);
-          navigate('/experiments');
+          console.error('Benchmark not found:', routeExperimentId);
+          navigate(basePath);
           return;
         }
 
-        // Find the ExperimentRun by ID
+        // Find the BenchmarkRun by ID
         const expRun = exp.runs?.find(r => r.id === runId);
 
         if (!expRun) {
-          console.error('ExperimentRun not found:', runId);
-          navigate(`/experiments/${routeExperimentId}/runs`);
+          console.error('BenchmarkRun not found:', runId);
+          navigate(`${basePath}/${routeExperimentId}/runs`);
           return;
         }
 
@@ -348,7 +356,7 @@ export const RunDetailsPage: React.FC = () => {
   // Handlers
   const handleBack = () => {
     if (experimentContext) {
-      navigate(`/experiments/${experimentContext.experiment.id}/runs`);
+      navigate(`${basePath}/${experimentContext.experiment.id}/runs`);
     } else if (report) {
       navigate(`/test-cases/${report.testCaseId}/runs`);
     } else {

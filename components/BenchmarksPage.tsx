@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Trash2, Eye, Calendar, FlaskConical, RefreshCw, CheckCircle, XCircle, Loader2, Circle, X, Play, Pencil } from 'lucide-react';
+import { Plus, Trash2, Eye, Calendar, FlaskConical, RefreshCw, CheckCircle, XCircle, Loader2, Circle, X, Play, Pencil, StopCircle, Ban } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { asyncBenchmarkStorage, asyncTestCaseStorage } from '@/services/storage';
-import { executeBenchmarkRun } from '@/services/client';
+import { executeBenchmarkRun, cancelBenchmarkRun } from '@/services/client';
 import { Benchmark, BenchmarkRun, BenchmarkProgress, TestCase } from '@/types';
 import { BenchmarkEditor, RunConfigForExecution } from './BenchmarkEditor';
 import { BenchmarkResultsView } from './BenchmarkResultsView';
@@ -26,7 +26,7 @@ import { formatDate } from '@/lib/utils';
 interface UseCaseRunStatus {
   id: string;
   name: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 }
 
 const POLL_INTERVAL_MS = 2000; // Poll every 2 seconds when running
@@ -43,6 +43,7 @@ export const BenchmarksPage: React.FC = () => {
   const [useCaseStatuses, setUseCaseStatuses] = useState<UseCaseRunStatus[]>([]);
   const [editingDescriptionId, setEditingDescriptionId] = useState<string | null>(null);
   const [editingDescriptionValue, setEditingDescriptionValue] = useState('');
+  const [cancellingRunId, setCancellingRunId] = useState<string | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load test cases on mount
@@ -119,6 +120,55 @@ export const BenchmarksPage: React.FC = () => {
     }
   };
 
+  // Helper to derive run status from results if status field is missing (legacy data)
+  const getEffectiveRunStatus = (run: BenchmarkRun): BenchmarkRun['status'] => {
+    // If status is explicitly set, use it (includes 'cancelled')
+    if (run.status) return run.status;
+    // Derive from results for legacy data
+    const results = Object.values(run.results || {});
+    if (results.some(r => r.status === 'running')) return 'running';
+    if (results.some(r => r.status === 'pending') &&
+        !results.some(r => r.status === 'completed' || r.status === 'failed')) {
+      return 'running';
+    }
+    return results.some(r => r.status === 'completed') ? 'completed' : 'failed';
+  };
+
+  // Find a running run in a benchmark (server-side detection)
+  const getRunningRun = (bench: Benchmark): BenchmarkRun | null => {
+    return bench.runs?.find(run => getEffectiveRunStatus(run) === 'running') || null;
+  };
+
+  // Check if the latest run was cancelled
+  const getLatestRunStatus = (bench: Benchmark): BenchmarkRun['status'] | null => {
+    const latestRun = getLatestRun(bench);
+    return latestRun ? getEffectiveRunStatus(latestRun) : null;
+  };
+
+  const handleCancelRun = async (benchmarkId: string, runId: string) => {
+    // Immediately disable the cancel button and update UI
+    setCancellingRunId(runId);
+
+    // Clear local running state if this was a locally-initiated run
+    if (runningBenchmarkId === benchmarkId) {
+      setRunningBenchmarkId(null);
+      setUseCaseStatuses(prev => prev.map(uc =>
+        uc.status === 'pending' || uc.status === 'running'
+          ? { ...uc, status: 'cancelled' as const }
+          : uc
+      ));
+    }
+
+    try {
+      await cancelBenchmarkRun(benchmarkId, runId);
+      await loadBenchmarks();
+    } catch (error) {
+      console.error('Failed to cancel run:', error);
+    } finally {
+      setCancellingRunId(null);
+    }
+  };
+
   const handleSaveBenchmark = async (bench: Benchmark) => {
     await asyncBenchmarkStorage.save(bench);
     loadBenchmarks();
@@ -159,7 +209,14 @@ export const BenchmarksPage: React.FC = () => {
             if (index < progress.currentTestCaseIndex) {
               return { ...uc, status: 'completed' as const };
             } else if (index === progress.currentTestCaseIndex) {
-              return { ...uc, status: progress.status === 'completed' ? 'completed' : 'running' as const };
+              // Map progress status to use case status
+              const statusMap: Record<BenchmarkProgress['status'], UseCaseRunStatus['status']> = {
+                'running': 'running',
+                'completed': 'completed',
+                'failed': 'failed',
+                'cancelled': 'cancelled',
+              };
+              return { ...uc, status: statusMap[progress.status] };
             }
             return uc;
           }));
@@ -253,7 +310,14 @@ export const BenchmarksPage: React.FC = () => {
           if (index < progress.currentTestCaseIndex) {
             return { ...uc, status: 'completed' as const };
           } else if (index === progress.currentTestCaseIndex) {
-            return { ...uc, status: progress.status === 'completed' ? 'completed' : 'running' as const };
+            // Map progress status to use case status
+            const statusMap: Record<BenchmarkProgress['status'], UseCaseRunStatus['status']> = {
+              'running': 'running',
+              'completed': 'completed',
+              'failed': 'failed',
+              'cancelled': 'cancelled',
+            };
+            return { ...uc, status: statusMap[progress.status] };
           }
           return uc;
         }));
@@ -342,7 +406,10 @@ export const BenchmarksPage: React.FC = () => {
         ) : (
           benchmarks.map(bench => {
             const latestRun = getLatestRun(bench);
-            const isRunning = runningBenchmarkId === bench.id;
+            const serverRunningRun = getRunningRun(bench);
+            const isRunning = runningBenchmarkId === bench.id || serverRunningRun !== null;
+            const latestRunStatus = getLatestRunStatus(bench);
+            const isCancelled = latestRunStatus === 'cancelled';
 
             const completedCount = useCaseStatuses.filter(uc => uc.status === 'completed').length;
             const failedCount = useCaseStatuses.filter(uc => uc.status === 'failed').length;
@@ -350,7 +417,7 @@ export const BenchmarksPage: React.FC = () => {
             const progressPercent = totalCount > 0 ? ((completedCount + failedCount) / totalCount) * 100 : 0;
 
             return (
-              <Card key={bench.id} className={isRunning ? 'border-blue-500/50' : ''}>
+              <Card key={bench.id} className={isRunning ? 'border-blue-500/50' : isCancelled ? 'border-orange-500/30' : ''}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
                     {/* Main Content - Clickable to view runs */}
@@ -366,7 +433,13 @@ export const BenchmarksPage: React.FC = () => {
                             Running
                           </Badge>
                         )}
-                        {!isRunning && bench.runs && bench.runs.length > 0 && (
+                        {!isRunning && isCancelled && (
+                          <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-400 border-orange-500/30">
+                            <Ban size={10} className="mr-1" />
+                            Cancelled
+                          </Badge>
+                        )}
+                        {!isRunning && !isCancelled && bench.runs && bench.runs.length > 0 && (
                           <Badge variant="outline" className="text-xs">
                             {bench.runs.length} run{bench.runs.length !== 1 ? 's' : ''}
                           </Badge>
@@ -422,7 +495,8 @@ export const BenchmarksPage: React.FC = () => {
                                 {uc.status === 'running' && <Loader2 size={12} className="text-blue-400 animate-spin" />}
                                 {uc.status === 'completed' && <CheckCircle size={12} className="text-opensearch-blue" />}
                                 {uc.status === 'failed' && <XCircle size={12} className="text-red-400" />}
-                                <span className={uc.status === 'running' ? 'text-blue-400' : 'text-muted-foreground'}>
+                                {uc.status === 'cancelled' && <Ban size={12} className="text-orange-400" />}
+                                <span className={uc.status === 'running' ? 'text-blue-400' : uc.status === 'cancelled' ? 'text-orange-400' : 'text-muted-foreground'}>
                                   {uc.name}
                                 </span>
                               </div>
@@ -488,6 +562,26 @@ export const BenchmarksPage: React.FC = () => {
                           <Play size={14} />
                         )}
                       </Button>
+                      {/* Cancel button - shown when run is in progress */}
+                      {isRunning && serverRunningRun && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={cancellingRunId === serverRunningRun.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCancelRun(bench.id, serverRunningRun.id);
+                          }}
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10 border-red-500/30 disabled:opacity-50"
+                        >
+                          {cancellingRunId === serverRunningRun.id ? (
+                            <Loader2 size={14} className="mr-1 animate-spin" />
+                          ) : (
+                            <StopCircle size={14} className="mr-1" />
+                          )}
+                          {cancellingRunId === serverRunningRun.id ? 'Cancelling...' : 'Cancel'}
+                        </Button>
+                      )}
                       {!isRunning && (
                         <Button
                           variant="ghost"

@@ -61,6 +61,8 @@ npx @opensearch-project/agent-health --port 8080
 npx @opensearch-project/agent-health --env-file .env
 ```
 
+**IMPORTANT:** Do not modify the `name` or `version` fields in `package.json`. These are used for publishing the tool via NPX.
+
 ### Setup (first time)
 ```bash
 ./scripts/setup.sh              # Quick start (assumes ML-Commons running)
@@ -215,6 +217,43 @@ Express server on port 4001 provides:
 - `OPENSEARCH_STORAGE_*`: Storage cluster for test cases/benchmarks (features degrade if missing)
 - `OPENSEARCH_LOGS_*`: Logs cluster for agent execution logs (features degrade if missing)
 - `MLCOMMONS_HEADER_*`: Headers for ML-Commons agent data source access (see [docs/ML-COMMONS-SETUP.md](docs/ML-COMMONS-SETUP.md))
+
+### Data Model
+
+#### Entity Identification
+
+| Entity | System ID Format | Natural Key | Unique? | OpenSearch Doc ID |
+|--------|-----------------|-------------|---------|-------------------|
+| Test Case | `tc-{timestamp}-{random}` | `name` | ID only | `{id}-v{version}` |
+| Benchmark | `bench-{timestamp}-{random}` | `name` | ID only | `{id}` |
+| Run | `run-{timestamp}-{random}` | `name` | ID only | Embedded in benchmark |
+| TestCaseRun | `report-{timestamp}-{random}` | N/A | ID only | `{id}` |
+
+**Note:** Names are NOT enforced as unique. Multiple entities can have the same name.
+
+#### Versioning Strategy
+
+| Entity | Strategy | Triggers New Version | Document Storage |
+|--------|----------|---------------------|------------------|
+| Test Case | Immutable versions | Any content change | New doc: `{id}-v{n+1}` |
+| Benchmark | Selective | testCaseIds change only | Single doc, versions array |
+| Run | Not versioned | N/A | Embedded in benchmark |
+
+#### Key Relationships
+
+- **Benchmark → Test Cases**: `benchmark.testCaseIds[]` references `testCase.id`
+- **Benchmark → Runs**: `benchmark.runs[]` embeds run configurations
+- **Run → TestCaseRun**: `run.results[testCaseId].reportId` references `testCaseRun.id`
+- **TestCaseRun → Benchmark**: `testCaseRun.experimentId` references `benchmark.id`
+
+#### OpenSearch Indexes
+
+| Index | Entity | Document ID Format |
+|-------|--------|-------------------|
+| `evals_test_cases` | Test Case | `{testCaseId}-v{version}` |
+| `evals_benchmarks` | Benchmark | `{benchmarkId}` |
+| `evals_runs` | TestCaseRun | `{reportId}` |
+| `evals_analytics` | Analytics | `analytics-{runId}` |
 
 ## Coding Style Conventions
 
@@ -556,6 +595,55 @@ npm test -- --coverage          # Generate coverage report
 ```
 
 Coverage reports are generated in `coverage/` directory with HTML report at `coverage/lcov-report/index.html`.
+
+## PR Workflow
+
+When preparing to raise a PR against the upstream repository (change remote from origin if different) :
+
+1. **Fetch latest from upstream:**
+   ```bash
+   git fetch origin main
+   ```
+
+2. **Create a clean branch from upstream main:**
+   ```bash
+   git checkout -b <branch-name> origin/main
+   ```
+
+3. **Cherry-pick your commits** (if working from a development branch):
+   ```bash
+   git cherry-pick <oldest-commit>^..<newest-commit>
+   ```
+
+4. **Verify DCO sign-off on all commits:**
+   ```bash
+   # Check if all commits have sign-off
+   git log --format="%h %s" origin/main..HEAD
+   git log origin/main..HEAD | grep -c "Signed-off-by"
+
+   # If any commits are missing sign-off, rebase with --signoff
+   git rebase origin/main --signoff
+   ```
+
+5. **Add changelog entry:**
+   - Create or update `CHANGELOG.md` with your changes
+   - Follow the format in existing changelog entries
+   - Add entry under "Unreleased" section with category (Added/Changed/Fixed/Removed)
+   ```markdown
+   ## [Unreleased]
+   ### Added
+   - Your feature description ([#PR_NUMBER](link))
+   ```
+
+6. **Push to your fork (change remote name as needed):**
+   ```bash
+   git push -u fork <branch-name>
+   ```
+
+7. **Create PR** via GitHub UI or CLI:
+   ```bash
+   gh pr create --repo opensearch-project/dashboards-traces --base main
+   ```
 
 ## OpenSearch Project Compliance
 
