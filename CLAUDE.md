@@ -45,6 +45,10 @@ npm run build   # TypeScript compile + Vite production build
 npm test                    # Run all tests (unit + integration)
 npm run test:unit           # Unit tests only
 npm run test:integration    # Integration tests only
+npm run test:e2e            # E2E tests with Playwright
+npm run test:e2e:ui         # E2E tests with Playwright UI mode
+npm run test:e2e:report     # View Playwright HTML report
+npm run test:all            # Run all tests (unit + integration + e2e)
 npm test -- --watch         # Watch mode
 npm test -- path/to/file.test.ts  # Single test file
 ```
@@ -95,6 +99,8 @@ npx @opensearch-project/agent-health --env-file .env
 **Trace Services** (`services/traces/`):
 - `tracePoller.ts`: Polls for traces with configurable delay (traces take ~5 min to propagate)
 - `index.ts`: Trace fetching and metrics calculation from OTel spans
+- `traceGrouping.ts`: Groups flat spans by traceId with summary statistics for table view
+- `spanCategorization.ts`: Categorizes spans by type (AGENT, LLM, TOOL, etc.) based on OTEL conventions
 
 **Other Services**:
 - `comparisonService.ts`: Aggregate metrics and side-by-side comparison logic
@@ -210,7 +216,8 @@ Express server on port 4001 provides:
 ### Environment Variables
 
 **Required** (see [.env.example](.env.example)):
-- `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`: Bedrock credentials for LLM judge
+- `AWS_PROFILE`, `AWS_REGION`: AWS profile for Bedrock LLM judge (recommended)
+- Or explicit credentials: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`
 
 **Optional** (all have sensible defaults):
 - `LANGGRAPH_ENDPOINT` / `HOLMESGPT_ENDPOINT` / `MLCOMMONS_ENDPOINT`: Agent endpoints
@@ -584,17 +591,6 @@ GitHub Actions workflows in `.github/workflows/`:
 | `changelog.yml` | PR | Validate changelog |
 | `dependency-review.yml` | PR | Review dependency changes |
 | `links-checker.yml` | Push/Scheduled | Check for broken links |
-
-### Running Tests Locally
-
-```bash
-npm test                        # All tests
-npm run test:unit               # Unit tests only
-npm run test:integration        # Integration tests only
-npm test -- --coverage          # Generate coverage report
-```
-
-Coverage reports are generated in `coverage/` directory with HTML report at `coverage/lcov-report/index.html`.
 
 ## PR Workflow
 

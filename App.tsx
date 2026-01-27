@@ -15,6 +15,7 @@ import { TestCasesPage } from './components/TestCasesPage';
 import { TestCaseRunsPage } from './components/TestCaseRunsPage';
 import { ComparisonPage } from './components/comparison/ComparisonPage';
 import { TracesPage } from './components/traces/TracesPage';
+import { AgentTracesPage } from './components/traces/AgentTracesPage';
 
 function ExperimentRunsRedirect() {
   const { experimentId } = useParams();
@@ -48,13 +49,15 @@ function App() {
           {/* Live Traces */}
           <Route path="/traces" element={<TracesPage />} />
 
+          {/* Agent Traces - Table View */}
+          <Route path="/agent-traces" element={<AgentTracesPage />} />
+
           {/* Redirects for deprecated routes */}
           <Route path="/evals" element={<Navigate to="/test-cases" replace />} />
           <Route path="/run" element={<Navigate to="/test-cases" replace />} />
           <Route path="/reports" element={<Navigate to="/benchmarks" replace />} />
           <Route path="/experiments" element={<Navigate to="/benchmarks" replace />} />
           <Route path="/experiments/:experimentId/runs" element={<ExperimentRunsRedirect />} />
-          <Route path="/config" element={<Navigate to="/settings" replace />} />
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />

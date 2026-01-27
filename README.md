@@ -1,16 +1,18 @@
-# AgentEval
+# Agent Health
 
 [![CI](https://github.com/opensearch-project/dashboards-traces/actions/workflows/ci.yml/badge.svg)](https://github.com/opensearch-project/dashboards-traces/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE.txt)
 [![Coverage](https://img.shields.io/badge/coverage->90%25-brightgreen.svg)](https://github.com/opensearch-project/dashboards-traces/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@opensearch-project/agent-health.svg)](https://www.npmjs.com/package/@opensearch-project/agent-health)
 
-An evaluation framework for Root Cause Analysis (RCA) agents. Uses "Golden Path" trajectory comparison where an LLM Judge evaluates agent actions against expected outcomes.
+An evaluation and observability framework for AI agents. Features real-time trace visualization, "Golden Path" trajectory comparison, and LLM-based evaluation scoring.
 
 ## Features
 
 - **Evals**: Real-time agent evaluation with trajectory streaming
 - **Experiments**: Batch evaluation runs with configurable parameters
 - **Compare**: Side-by-side trace comparison with aligned and merged views
+- **Agent Traces**: Table-based trace view with latency histogram, filtering, and detailed flyout with input/output display
 - **Live Traces**: Real-time trace monitoring with auto-refresh and filtering
 - **Trace Views**: Timeline and Flow visualizations for debugging
 - **Reports**: Evaluation reports with LLM judge reasoning
@@ -108,6 +110,9 @@ See `.env.example` for all available options.
 | `npm test` | Run all tests |
 | `npm run test:unit` | Run unit tests only |
 | `npm run test:integration` | Run integration tests only |
+| `npm run test:e2e` | Run E2E tests with Playwright |
+| `npm run test:e2e:ui` | Run E2E tests with Playwright UI |
+| `npm run test:all` | Run all tests (unit + integration + e2e) |
 | `npm test -- --coverage` | Run tests with coverage report |
 | `npm run build:all` | Build UI + server + CLI |
 | `npm run build:cli` | Build CLI only |
@@ -143,9 +148,112 @@ In development, the Vite dev server (4000) proxies `/api` requests to the backen
 
 ---
 
+## Testing
+
+AgentEval uses a comprehensive test suite with three layers:
+
+### Test Types
+
+| Type | Location | Command | Description |
+|------|----------|---------|-------------|
+| **Unit** | `tests/unit/` | `npm run test:unit` | Fast, isolated function tests |
+| **Integration** | `tests/integration/` | `npm run test:integration` | Tests with real backend server |
+| **E2E** | `tests/e2e/` | `npm run test:e2e` | Browser-based UI tests with Playwright |
+
+### Running Tests
+
+```bash
+# All tests
+npm test                        # Unit + integration
+npm run test:all                # Unit + integration + E2E
+
+# By type
+npm run test:unit               # Unit tests only
+npm run test:integration        # Integration tests (starts server)
+npm run test:e2e                # E2E tests (starts servers)
+npm run test:e2e:ui             # E2E with Playwright UI for debugging
+
+# With coverage
+npm run test:unit -- --coverage
+
+# Specific file
+npm test -- path/to/file.test.ts
+npx playwright test tests/e2e/dashboard.spec.ts
+```
+
+### E2E Testing with Playwright
+
+E2E tests use [Playwright](https://playwright.dev/) to test the UI in a real browser.
+
+```bash
+# First time: install browsers
+npx playwright install
+
+# Run all E2E tests
+npm run test:e2e
+
+# Interactive UI mode (recommended for debugging)
+npm run test:e2e:ui
+
+# View test report
+npm run test:e2e:report
+```
+
+**Writing E2E Tests:**
+- Place tests in `tests/e2e/*.spec.ts`
+- Use `data-testid` attributes for reliable selectors
+- Handle empty states gracefully (check if data exists before asserting)
+- See existing tests for patterns
+
+### CI Pipeline
+
+All PRs must pass these CI checks:
+
+| Job | What it checks |
+|-----|----------------|
+| `build-and-test` | Build + unit tests + 90% coverage |
+| `lint-and-typecheck` | TypeScript compilation |
+| `license-check` | SPDX headers on all source files |
+| `integration-tests` | Backend integration tests with coverage |
+| `e2e-tests` | Playwright browser tests with pass/fail tracking |
+| `security-scan` | npm audit for vulnerabilities |
+| `test-summary` | Consolidated test results summary |
+
+### Coverage Thresholds
+
+| Test Type | Metric | Threshold |
+|-----------|--------|-----------|
+| Unit | Lines | ≥ 90% |
+| Unit | Branches | ≥ 80% |
+| Unit | Functions | ≥ 80% |
+| Unit | Statements | ≥ 90% |
+| Integration | Lines | Informational (no threshold) |
+| E2E | Pass Rate | 100% |
+
+### CI Artifacts
+
+Each CI run produces these artifacts (downloadable from Actions tab):
+
+| Artifact | Contents |
+|----------|----------|
+| `coverage-report` | Unit test coverage (HTML, LCOV) |
+| `integration-coverage-report` | Integration test coverage |
+| `playwright-report` | E2E test report with screenshots/traces |
+| `test-badges` | Badge data JSON for coverage visualization |
+
+### Full Evaluation Flow E2E Tests
+
+The E2E test suite includes tests for the complete evaluation flow using mock modes:
+- **Demo Agent** (`mock://demo`) - Simulated AG-UI streaming responses
+- **Demo Model** (`provider: "demo"`) - Simulated LLM judge evaluation
+
+This allows testing the full Create Test Case → Create Benchmark → Run Evaluation → View Results flow without requiring AWS credentials or a live agent in CI.
+
+---
+
 ## Agent Setup
 
-AgentEval supports multiple agent types:
+Agent Health supports multiple agent types:
 
 | Agent | Endpoint Variable | Setup |
 |-------|-------------------|-------|
